@@ -14,9 +14,9 @@
 
 function micromarkdown($string) {
   $regexobject = array(
-    "headline"=>   '/^(\#{1,6})([^\#\n]+)\n/m',
+    "headline"=>   '/^(\#{1,6})([^\#\n]+)$/m',
     "code"=>       '/\s\`\`\`\n?([^`]+)\`\`\`/',
-    "hr"=>         '/\n(?:([\*\-_] ?)+)\1\1\n/m',
+    "hr"=>         '/\n(?:([\*\-_] ?)+)\1\1$/m',
     "lists"=>      '/^(( *(\*|\d\.) [^\n]+)\n)+/m',
     "bolditalic"=> '/(?:([\*_~]{1,3}))([^\*_~\n]+[^\*_~\s])\1/',
     "links"=>      '/!?\[([^\]<>]+)\]\(([^ \)<>]+)( "[^\(\)\"]+")?\)/',
@@ -86,26 +86,6 @@ function micromarkdown($string) {
     $string = str_replace($match[0], $repstr."\n", $string);
   }
 
-  /* bold and italic */
-  while (preg_match($regexobject['bolditalic'], $string, $match)) {
-    if ($match[1] === '~~') {
-      $string = str_replace($match[0], '<del>' . $match[2] . '</del>', $string);
-    } else {
-      switch (strlen($match[1])) {
-      case 1:
-        $repstr = array('<i>', '</i>');
-        break;
-      case 2:
-        $repstr = array('<b>', '</b>');
-        break;
-      case 3:
-        $repstr = array('<i><b>', '</b></i>');
-        break;
-      }
-      $string = str_replace($match[0], $repstr[0] . $match[2] . $repstr[1], $string);
-    }
-  }
-
   /* tables */
   while (preg_match($regexobject['tables'], $string, $match)) {
     $repstr = '<table><tr>';
@@ -156,6 +136,26 @@ function micromarkdown($string) {
   }
   for ($i = 0; $i < count($trashgc); $i++) {
     $string = str_replace($trashgc[$i], '', $string);
+  }
+
+  /* bold and italic */
+  while (preg_match($regexobject['bolditalic'], $string, $match)) {
+    if ($match[1] === '~~') {
+      $string = str_replace($match[0], '<del>' . $match[2] . '</del>', $string);
+    } else {
+      switch (strlen($match[1])) {
+      case 1:
+        $repstr = array('<i>', '</i>');
+        break;
+      case 2:
+        $repstr = array('<b>', '</b>');
+        break;
+      case 3:
+        $repstr = array('<i><b>', '</b></i>');
+        break;
+      }
+      $string = str_replace($match[0], $repstr[0] . $match[2] . $repstr[1], $string);
+    }
   }
 
   /* include */
