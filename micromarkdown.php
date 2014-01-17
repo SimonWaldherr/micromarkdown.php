@@ -4,12 +4,12 @@
  * µmarkdown.php
  * translated from https://github.com/SimonWaldherr/micromarkdown.js
  *
- * Copyright 2013, Simon Waldherr - http://simon.waldherr.eu/
+ * Copyright 2014, Simon Waldherr - http://simon.waldherr.eu/
  * Released under the MIT Licence
  * http://simon.waldherr.eu/license/mit/
  *
  * Github:  https://github.com/SimonWaldherr/micromarkdown.php
- * Version: 0.1.5
+ * Version: 0.1.6
  */
 
 function micromarkdown($string) {
@@ -17,7 +17,7 @@ function micromarkdown($string) {
     "headline"=>   '/^(\#{1,6})([^\#\n]+)$/m',
     "code"=>       '/\s\`\`\`\n?([^`]+)\`\`\`/',
     "hr"=>         '/\n(?:([\*\-_] ?)+)\1\1$/m',
-    "lists"=>      '/^(( *(\*|\d\.) [^\n]+)\n)+/m',
+    "lists"=>      '/^((\s*(\*|\d\.) [^\n]+)\n)+/m',
     "bolditalic"=> '/(?:([\*_~]{1,3}))([^\*_~\n]+[^\*_~\s])\1/',
     "links"=>      '/!?\[([^\]<>]+)\]\(([^ \)<>]+)( "[^\(\)\"]+")?\)/',
     "reflinks"=>   '/\[([^\]]+)\]\[([^\]]+)\]/',
@@ -54,21 +54,33 @@ function micromarkdown($string) {
     }
     $helper = explode("\n", $match[0]);
     $status = 0;
+    $indent = false;
     for ($i = 0; $i < count($helper); $i++) {
-      if (preg_match("/^(( )*(\*|\d\.) ([^\n]+))/", $helper[$i], $line)) {
+      if (preg_match("/^((\s*)(\*|\d\.) ([^\n]+))/", $helper[$i], $line)) {
         if ($line[2] === "") {
           $nstatus = 0;
         } else {
-          $nstatus = count($line[2]);
+          if ($indent === false) {
+            $indent = strlen(str_replace("\t", "    ", $line[2]));
+          }
+          $nstatus = round(strlen(str_replace("\t", "    ", $line[2]))/$indent);
         }
-        if ($status > $nstatus) {
-          $repstr .= '</ul>';
-          $status = $nstatus;
+        while ($status > $nstatus) {
+          if (substr(trim($line[0]), 0, 1) === '*') {
+            $repstr .= '</ul>';
+          } else {
+            $repstr .= '</ol>';
+          }
+          $status--;
           $casca--;
         }
-        if ($status < $nstatus) {
-          $repstr .= '<ul>';
-          $status = $nstatus;
+        while ($status < $nstatus) {
+          if (substr(trim($line[0]), 0, 1) === '*') {
+            $repstr .= '<ul>';
+          } else {
+            $repstr .= '<ol>';
+          }
+          $status++;
           $casca++;
         }
         $repstr .= '<li>' . $line[4] . '</li>' . "\n";
@@ -206,5 +218,5 @@ function micromarkdown($string) {
   $string = preg_replace("/ {2,}[\n]{1,}/m", '<br/><br/>', $string);
   return $string;
 }
-  
+
 ?>
