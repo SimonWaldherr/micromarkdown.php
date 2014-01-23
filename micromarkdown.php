@@ -21,6 +21,7 @@ function micromarkdown($string) {
     "bolditalic"=> '/(?:([\*_~]{1,3}))([^\*_~\n]+[^\*_~\s])\1/',
     "links"=>      '/!?\[([^\]<>]+)\]\(([^ \)<>]+)( "[^\(\)\"]+")?\)/',
     "reflinks"=>   '/\[([^\]]+)\]\[([^\]]+)\]/',
+    "smlinks"=>    '/\@([a-z0-9]{3,})\@(t|gh|fb|gp|adn)/i',
     "mail"=>       '/<(([a-z0-9_\-\.])+\@([a-z0-9_\-\.])+\.([a-z]{2,7}))>/mi',
     "tables"=>     '/\n(([^|\n]+ *\| *)+([^|\n]+\n))(\-+\|)+(\-+\n)((([^|\n]+ *\| *)+([^|\n]+)\n)+)/',
     "include"=>    '/[\[<]include (\S+) from (https?:\/\/[a-z0-9\.\-]+\.[a-z]{2,9}[a-z0-9\.\-\?\&\/]+)[\]>]/i',
@@ -148,6 +149,26 @@ function micromarkdown($string) {
   }
   for ($i = 0; $i < count($trashgc); $i++) {
     $string = str_replace($trashgc[$i], '', $string);
+  }
+  while (preg_match($regexobject['smlinks'], $string, $match)) {
+    switch ($match[2]) {
+    case 't':
+      $repstr = 'https://twitter.com/' . $match[1];
+      break;
+    case 'gh':
+      $repstr = 'https://github.com/' . $match[1];
+      break;
+    case 'fb':
+      $repstr = 'https://www.facebook.com/' . $match[1];
+      break;
+    case 'gp':
+      $repstr = 'https://plus.google.com/' . $match[1];
+      break;
+    case 'adn':
+      $repstr = 'https://alpha.app.net/' . $match[1];
+      break;
+    }
+    $string = str_replace($match[0], '<a href="' . $repstr . '">' . $match[1] . '</a>', $string);
   }
 
   /* bold and italic */
