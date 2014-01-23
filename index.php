@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>micromarkdown.php</title>
+  <link href="https://raw2.github.com/SimonWaldherr/micromarkdown.js/master/mmd.css" rel="stylesheet" type="text/css">
   <link href="./style.css" rel="stylesheet" type="text/css">
 </head>
 <body><div style="padding:15px;">

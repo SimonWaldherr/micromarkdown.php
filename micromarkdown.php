@@ -12,7 +12,20 @@
  * Version: 0.1.6
  */
 
-function micromarkdown($string) {
+function mmd_CSSclass($string, $strict) {
+  if ((strpos($string, '/') !== false) && ($strict !== true)) {
+    $urlTemp = explode('/', $string);
+    if (strlen($urlTemp[1]) === 0) {
+      $urlTemp = explode('.', $urlTemp[2]);
+    } else {
+      $urlTemp = explode('.', $urlTemp[0]);
+    }
+    return 'class="mmd_' . preg_replace('/[^\w\d]/', '', $urlTemp[count($urlTemp) - 2]) . $urlTemp[count($urlTemp) - 1] . '" ';
+  }
+  return '';
+}
+
+function micromarkdown($string, $strict=false) {
   $regexobject = array(
     "headline"=>   '/^(\#{1,6})([^\#\n]+)$/m',
     "code"=>       '/\s\`\`\`\n?([^`]+)\`\`\`/',
@@ -127,7 +140,7 @@ function micromarkdown($string) {
     if (substr($match[0], 0, 1) === '!') {
       $string = str_replace($match[0], '<img src="' . $match[2] . '" alt="' . $match[1] . '" title="' . $match[1] . '" />' . "\n", $string);
     } else {
-      $string = str_replace($match[0], '<a href="' . $match[2] . '">' . $match[1] . '</a>' . "\n", $string);
+      $string = str_replace($match[0], '<a ' . mmd_CSSclass($match[2], $strict) . 'href="' . $match[2] . '">' . $match[1] . '</a>' . "\n", $string);
     }
   }
   while (preg_match($regexobject['mail'], $string, $match)) {
@@ -138,12 +151,12 @@ function micromarkdown($string) {
     if (strpos($repstr, '://') === -1) {
       $repstr = 'http://' . $repstr;
     }
-    $string = str_replace($match[0], '<a href="' . $repstr . '">' . str_replace(array('https://', 'http://', 'mailto:', 'ftp://'), array('', '', '', ''), $repstr) . '</a>', $string);
+    $string = str_replace($match[0], '<a ' . mmd_CSSclass($repstr, $strict) . 'href="' . $repstr . '">' . str_replace(array('https://', 'http://', 'mailto:', 'ftp://'), array('', '', '', ''), $repstr) . '</a>', $string);
   }
   $trashgc = array();
   while (preg_match($regexobject['reflinks'], $string, $match)) {
     if (preg_match('/\[' . $match[2] . '\]: ?([^ ' . "\n" . ']+)/', $string, $helper)) {
-      $string = str_replace($match[0], '<a href="' . $helper[1] . '">' . $match[1] . '</a>', $string);
+      $string = str_replace($match[0], '<a ' . mmd_CSSclass($helper[1], $strict) . 'href="' . $helper[1] . '">' . $match[1] . '</a>', $string);
       array_push($trashgc, $helper[0]);
     }
   }
@@ -168,7 +181,7 @@ function micromarkdown($string) {
       $repstr = 'https://alpha.app.net/' . $match[1];
       break;
     }
-    $string = str_replace($match[0], '<a href="' . $repstr . '">' . $match[1] . '</a>', $string);
+    $string = str_replace($match[0], '<a ' . mmd_CSSclass($repstr, $strict) . 'href="' . $repstr . '">' . $match[1] . '</a>', $string);
   }
 
   /* bold and italic */
