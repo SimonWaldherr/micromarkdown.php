@@ -36,7 +36,7 @@ function micromarkdown($string, $strict=false) {
     "reflinks"=>   '/\[([^\]]+)\]\[([^\]]+)\]/',
     "smlinks"=>    '/\@([a-z0-9]{3,})\@(t|gh|fb|gp|adn)/i',
     "mail"=>       '/<(([a-z0-9_\-\.])+\@([a-z0-9_\-\.])+\.([a-z]{2,7}))>/mi',
-    "tables"=>     '/\n(([^|\n]+ *\| *)+([^|\n]+\n))(\-+\|)+(\-+\n)((([^|\n]+ *\| *)+([^|\n]+)\n)+)/',
+    "tables"=>     '/\n(([^|\n]+ *\| *)+([^|\n]+\n))((:?\-+:?\|)+(:?\-+:?)*\n)((([^|\n]+ *\| *)+([^|\n]+)\n)+)/',
     "include"=>    '/[\[<]include (\S+) from (https?:\/\/[a-z0-9\.\-]+\.[a-z]{2,9}[a-z0-9\.\-\?\&\/]+)[\]>]/i',
     "url"=>        '/<([a-zA-Z0-9@:%_\+.~#?&\/\/=]{2,256}\.[a-z]{2,4}\b(\/[\-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)?)>/');
 
@@ -51,11 +51,6 @@ function micromarkdown($string, $strict=false) {
   while (preg_match($regexobject['headline'], $string, $match)) {
     $count = strlen($match[1]);
     $string = str_replace($match[0], '<h' . $count . '>' . $match[2] . '</h' . $count . '>', $string);
-  }
-
-  /* horizontal line */
-  while (preg_match($regexobject['hr'], $string, $match)) {
-    $string = str_replace($match[0], "\n<hr/>\n", $string);
   }
 
   /* lists */
@@ -116,17 +111,40 @@ function micromarkdown($string, $strict=false) {
   while (preg_match($regexobject['tables'], $string, $match)) {
     $repstr = '<table><tr>';
     $helper = explode('|', $match[1]);
+    $calign = explode('|', $match[4]);
     for ($i = 0; $i < count($helper); $i++) {
-      $repstr .= '<th>' . trim($helper[$i]) . '</th>';
+      if (count($calign) <= $i) {
+        array_push($calign, 0);
+      } else if (substr(trim($calign[$i]), -1) == ':') {
+        if ($calign[$i][0] == ':') {
+          $calign[$i] = 3;
+        } else {
+          $calign[$i] = 2;
+        }
+      } else {
+        if ($calign[$i][0] == ':') {
+          $calign[$i] = 1;
+        } else {
+          $calign[$i] = 0;
+        }
+      }
+    }
+    $cel = ['<th>', '<th align="left">', '<th align="right">', '<th align="center"'];
+    for ($i = 0; $i < count($helper); $i++) {
+      $repstr .= $cel[$calign[$i]] . trim($helper[$i]) . '</th>';
     }
     $repstr .= '</tr>';
-    $helper1 = explode("\n", trim($match[6]));
+    $cel = ['<td>', '<td align="left">', '<td align="right">', '<td align="center"'];
+    $helper1 = explode("\n", trim($match[7]));
     for ($i = 0; $i < count($helper1); $i++) {
       $helper2 = explode('|', $helper1[$i]);
       if (count($helper2[0]) !== 0) {
+        while (count($calign) < count($helper2)) {
+          array_push($calign, 0);
+        }
         $repstr .= '<tr>';
         for ($j = 0; $j < count($helper2); $j++) {
-          $repstr .= '<td>' . $helper2[$j] . '</td>';
+          $repstr .= $cel[$calign[$j]] . $helper2[$j] . '</td>';
         }
         $repstr .= '</tr>' . "\n";
       }
@@ -182,6 +200,11 @@ function micromarkdown($string, $strict=false) {
       break;
     }
     $string = str_replace($match[0], '<a ' . mmd_CSSclass($repstr, $strict) . 'href="' . $repstr . '">' . $match[1] . '</a>', $string);
+  }
+
+  /* horizontal line */
+  while (preg_match($regexobject['hr'], $string, $match)) {
+    $string = str_replace($match[0], "\n<hr/>\n", $string);
   }
 
   /* bold and italic */
