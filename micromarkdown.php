@@ -9,7 +9,7 @@
  * http://simon.waldherr.eu/license/mit/
  *
  * Github:  https://github.com/SimonWaldherr/micromarkdown.php
- * Version: 0.1.6
+ * Version: 0.1.7
  */
 
 function mmd_CSSclass($string, $strict) {
@@ -153,6 +153,26 @@ function micromarkdown($string, $strict=false) {
     $string = str_replace($match[0], $repstr, $string);
   }
 
+  /* bold and italic */
+    while (preg_match($regexobject['bolditalic'], $string, $match)) {
+      if ($match[1] === '~~') {
+        $string = str_replace($match[0], '<del>' . $match[2] . '</del>', $string);
+      } else {
+        switch (strlen($match[1])) {
+        case 1:
+          $repstr = array('<i>', '</i>');
+          break;
+        case 2:
+          $repstr = array('<b>', '</b>');
+          break;
+        case 3:
+          $repstr = array('<i><b>', '</b></i>');
+          break;
+        }
+        $string = str_replace($match[0], $repstr[0] . $match[2] . $repstr[1], $string);
+      }
+    }
+
   /* links */
   while (preg_match($regexobject['links'], $string, $match)) {
     if (substr($match[0], 0, 1) === '!') {
@@ -205,26 +225,6 @@ function micromarkdown($string, $strict=false) {
   /* horizontal line */
   while (preg_match($regexobject['hr'], $string, $match)) {
     $string = str_replace($match[0], "\n<hr/>\n", $string);
-  }
-
-  /* bold and italic */
-  while (preg_match($regexobject['bolditalic'], $string, $match)) {
-    if ($match[1] === '~~') {
-      $string = str_replace($match[0], '<del>' . $match[2] . '</del>', $string);
-    } else {
-      switch (strlen($match[1])) {
-      case 1:
-        $repstr = array('<i>', '</i>');
-        break;
-      case 2:
-        $repstr = array('<b>', '</b>');
-        break;
-      case 3:
-        $repstr = array('<i><b>', '</b></i>');
-        break;
-      }
-      $string = str_replace($match[0], $repstr[0] . $match[2] . $repstr[1], $string);
-    }
   }
 
   /* include */
