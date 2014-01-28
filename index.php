@@ -6,7 +6,7 @@
   <link href="http://simonwaldherr.github.io/micromarkdown.js/mmd.css" rel="stylesheet" type="text/css">
   <link href="./style.css" rel="stylesheet" type="text/css">
 </head>
-<body><div style="padding:15px;">
+<body><div id="htmlexport" style="padding:15px;">
 <?php
   require_once('micromarkdown.php');
   $input = "#![µmd.js](http://simonwaldherr.de/umd.png)
@@ -67,7 +67,7 @@ to your HTML Head and than use
 
 ```
 var input = document.getElementById('input').value,
-    outputEle = document.getElementById('outEle');
+outputEle = document.getElementById('outEle');
 
 outputEle.innerHTML = micromarkdown.parse(input);
 ```  

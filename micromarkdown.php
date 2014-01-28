@@ -9,7 +9,7 @@
  * http://simon.waldherr.eu/license/mit/
  *
  * Github:  https://github.com/SimonWaldherr/micromarkdown.php
- * Version: 0.1.7
+ * Version: 0.2.0
  */
 
 function mmd_CSSclass($string, $strict) {
@@ -30,7 +30,7 @@ function micromarkdown($string, $strict=false) {
     "headline"=>   '/^(\#{1,6})([^\#\n]+)$/m',
     "code"=>       '/\s\`\`\`\n?([^`]+)\`\`\`/',
     "hr"=>         '/\n(?:([\*\-_] ?)+)\1\1$/m',
-    "lists"=>      '/^((\s*(\*|\d\.) [^\n]+)\n)+/m',
+    "lists"=>      '/^((\s*((\*|\-)|\d(\.|\))) [^\n]+)\n)+/m',
     "bolditalic"=> '/(?:([\*_~]{1,3}))([^\*_~\n]+[^\*_~\s])\1/',
     "links"=>      '/!?\[([^\]<>]+)\]\(([^ \)<>]+)( "[^\(\)\"]+")?\)/',
     "reflinks"=>   '/\[([^\]]+)\]\[([^\]]+)\]/',
@@ -39,6 +39,10 @@ function micromarkdown($string, $strict=false) {
     "tables"=>     '/\n(([^|\n]+ *\| *)+([^|\n]+\n))((:?\-+:?\|)+(:?\-+:?)*\n)((([^|\n]+ *\| *)+([^|\n]+)\n)+)/',
     "include"=>    '/[\[<]include (\S+) from (https?:\/\/[a-z0-9\.\-]+\.[a-z]{2,9}[a-z0-9\.\-\?\&\/]+)[\]>]/i',
     "url"=>        '/<([a-zA-Z0-9@:%_\+.~#?&\/\/=]{2,256}\.[a-z]{2,4}\b(\/[\-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)?)>/');
+
+  if ($strict !== true) {
+    $regexobject['lists'] = '/^((\s*(\*|\d\.) [^\n]+)\n)+/m';
+  }
 
   $string = "\n" . $string . "\n";
 
@@ -56,16 +60,17 @@ function micromarkdown($string, $strict=false) {
   /* lists */
   while (preg_match($regexobject['lists'], $string, $match)) {
     $casca = 0;
-    if (substr(trim($match[0]), 0, 1) === '*') {
+    if ((substr(trim($match[0]), 0, 1) === '*') || (substr(trim($match[0]), 0, 1) === '-')) {
       $repstr = '<ul>';
     } else {
       $repstr = '<ol>';
     }
     $helper = explode("\n", $match[0]);
+    $helper1 = array();
     $status = 0;
     $indent = false;
     for ($i = 0; $i < count($helper); $i++) {
-      if (preg_match("/^((\s*)(\*|\d\.) ([^\n]+))/", $helper[$i], $line)) {
+      if (preg_match('/^((\s*)((\*|\-)|\d(\.|\))) ([^\n]+))/', $helper[$i], $line)) {
         if ($line[2] === "") {
           $nstatus = 0;
         } else {
@@ -75,31 +80,29 @@ function micromarkdown($string, $strict=false) {
           $nstatus = round(strlen(str_replace("\t", "    ", $line[2]))/$indent);
         }
         while ($status > $nstatus) {
-          if (substr(trim($line[0]), 0, 1) === '*') {
-            $repstr .= '</ul>';
-          } else {
-            $repstr .= '</ol>';
-          }
+          $repstr .= array_pop($helper1);
           $status--;
           $casca--;
         }
         while ($status < $nstatus) {
-          if (substr(trim($line[0]), 0, 1) === '*') {
+          if ((substr(trim($line[0]), 0, 1) === '*') || (substr(trim($line[0]), 0, 1) === '-') ) {
             $repstr .= '<ul>';
+            array_push($helper1, '</ul>');
           } else {
             $repstr .= '<ol>';
+            array_push($helper1, '</ol>');
           }
           $status++;
           $casca++;
         }
-        $repstr .= '<li>' . $line[4] . '</li>' . "\n";
+        $repstr .= '<li>' . $line[6] . '</li>' . "\n";
       }
     }
     while ($casca > 0) {
       $repstr .= '</ul>';
       $casca--;
     }
-    if (substr(trim($match[0]), 0, 1) === '*') {
+    if ((substr(trim($match[0]), 0, 1) === '*') || (substr(trim($match[0]), 0, 1) === '-')) {
       $repstr .= '</ul>';
     } else {
       $repstr .= '</ol>';
@@ -121,20 +124,22 @@ function micromarkdown($string, $strict=false) {
         } else {
           $calign[$i] = 2;
         }
-      } else {
+      } else if ($strict !== true) {
         if ($calign[$i][0] == ':') {
           $calign[$i] = 1;
         } else {
           $calign[$i] = 0;
         }
+      } else {
+        $calign[$i] = 0;
       }
     }
-    $cel = ['<th>', '<th align="left">', '<th align="right">', '<th align="center"'];
+    $cel = ['<th>', '<th align="left">', '<th align="right">', '<th align="center">'];
     for ($i = 0; $i < count($helper); $i++) {
       $repstr .= $cel[$calign[$i]] . trim($helper[$i]) . '</th>';
     }
     $repstr .= '</tr>';
-    $cel = ['<td>', '<td align="left">', '<td align="right">', '<td align="center"'];
+    $cel = ['<td>', '<td align="left">', '<td align="right">', '<td align="center">'];
     $helper1 = explode("\n", trim($match[7]));
     for ($i = 0; $i < count($helper1); $i++) {
       $helper2 = explode('|', $helper1[$i]);
@@ -228,47 +233,52 @@ function micromarkdown($string, $strict=false) {
   }
 
   /* include */
-  while (preg_match($regexobject['include'], $string, $match)) {
-    $helper1 = trim(file_get_contents($match[2]));
-    if ($match[1] === 'csv') {
-      $helper2[';'] = array();
-      $helper2[','] = array();
-      $helper2[0] = array(';', ',');
-      $helper1 = explode("\n", $helper1);
-      for ($j = 0; $j < count($helper2[0]); $j++) {
-        for ($i = 0; $i < count($helper1); $i++) {
-          $helper2[$helper2[0][$j]][$i] = count(explode($helper2[0][$j], $helper1[$i]));
-          if ($i > 0) {
-            if ($helper2[$helper2[0][$j]] !== false) {
-              if (($helper2[$helper2[0][$j]][$i] !== $helper2[$helper2[0][$j]][$i - 1]) || ($helper2[$helper2[0][$j]][$i] === 1)) {
-                $helper2[$helper2[0][$j]] = false;
+  if ($strict !== true) {
+    while (preg_match($regexobject['include'], $string, $match)) {
+      $helper1 = trim(file_get_contents($match[2]));
+      if ($match[1] === 'csv') {
+        $helper2 = array(';'=> array(), '\t'=> array(), ','=> array(), '|'=> array());
+        $helper2[0] = array(';', '\t', ',', '|');
+        $helper1 = explode("\n", $helper1);
+        for ($j = 0; $j < count($helper2[0]); $j++) {
+          for ($i = 0; $i < count($helper1); $i++) {
+            $helper2[$helper2[0][$j]][$i] = count(explode($helper2[0][$j], $helper1[$i]));
+            if ($i > 0) {
+              if ($helper2[$helper2[0][$j]] !== false) {
+                if (($helper2[$helper2[0][$j]][$i] !== $helper2[$helper2[0][$j]][$i - 1]) || ($helper2[$helper2[0][$j]][$i] === 1)) {
+                  $helper2[$helper2[0][$j]] = false;
+                }
               }
             }
           }
         }
-      }
-      if (($helper2[','] !== false) || ($helper2[';'] !== false)) {
-        if ($helper2[';'] !== false) {
-          $helper2 = ';';
-        } else {
-          $helper2 = ',';
-        }
-        $repstr = '<table>';
-        for ($i = 0; $i < count($helper1); $i++) {
-          $helper = explode($helper2, $helper1[$i]);
-          $repstr .= '<tr>';
-          for ($j = 0; $j < count($helper); $j++) {
-            $repstr .= '<td>' . htmlentities($helper[$j]) . '</td>';
+        if (($helper2[';'] !== false) || ($helper2['\t'] !== false) || ($helper2[','] !== false) || ($helper2['|'] !== false)) {
+          if ($helper2[';'] !== false) {
+            $helper2 = ';';
+          } else if ($helper2['\t']) {
+            $helper2 = '\t';
+          } else if ($helper2[',']) {
+            $helper2 = ',';
+          } else if ($helper2['|']) {
+            $helper2 = '|';
           }
-          $repstr .= '</tr>';
+          $repstr = '<table>';
+          for ($i = 0; $i < count($helper1); $i++) {
+            $helper = explode($helper2, $helper1[$i]);
+            $repstr .= '<tr>';
+            for ($j = 0; $j < count($helper); $j++) {
+              $repstr .= '<td>' . htmlentities($helper[$j]) . '</td>';
+            }
+            $repstr .= '</tr>';
+          }
+          $repstr .= '</table>';
+          $string = str_replace($match[0], $repstr, $string);
+        } else {
+          $string = str_replace($match[0], '<code>' . implode("\n", $helper1) . '</code>', $string);
         }
-        $repstr .= '</table>';
-        $string = str_replace($match[0], $repstr, $string);
       } else {
-        $string = str_replace($match[0], '<code>' . implode("\n", $helper1) . '</code>', $string);
+        $string = str_replace($match[0], '', $string);
       }
-    } else {
-      $string = str_replace($match[0], '', $string);
     }
   }
 
