@@ -139,7 +139,6 @@ function micromarkdown($string, $strict=false) {
       $repstr .= $cel[$calign[$i]] . trim($helper[$i]) . '</th>';
     }
     $repstr .= '</tr>';
-    $cel = ['<td>', '<td align="left">', '<td align="right">', '<td align="center">'];
     $helper1 = explode("\n", trim($match[7]));
     for ($i = 0; $i < count($helper1); $i++) {
       $helper2 = explode('|', $helper1[$i]);
